@@ -27,7 +27,14 @@ def factorial(n: int) -> int:
         factorial(1) == 1
         factorial(5) == 120
     """
-    raise NotImplementedError("De implementat")
+    if n < 0:
+        raise ValueError("n trebuie să fie >= 0")
+    if n == 0:
+        return 1
+    result = 1
+    for i in range(1, n + 1):
+        result *= i
+    return result
 
 
 def _worker_factorial(input_queue: multiprocessing.Queue, output_queue: multiprocessing.Queue) -> None:
@@ -43,7 +50,11 @@ def _worker_factorial(input_queue: multiprocessing.Queue, output_queue: multipro
         output_queue: Coada unde se trimit perechile (n, rezultat).
     """
     # TODO: Implementează bucla worker
-    raise NotImplementedError("De implementat")
+    while True:
+        n = input_queue.get()
+        if n is None:
+            break
+        output_queue.put((n, factorial(n)))
 
 
 # TODO: Implementează funcția parallel_factorial_multiprocessing
@@ -62,7 +73,35 @@ def parallel_factorial_multiprocessing(values: list[int]) -> dict[int, int]:
         result = parallel_factorial_multiprocessing([5, 6, 7, 8])
         # {5: 120, 6: 720, 7: 5040, 8: 40320}
     """
-    raise NotImplementedError("De implementat")
+    input_queue = multiprocessing.Queue()
+    output_queue = multiprocessing.Queue()
+
+    # Lansează 4 procese worker
+    workers = []
+    for _ in range(4):
+        p = multiprocessing.Process(target=_worker_factorial, args=(input_queue, output_queue))
+        p.start()
+        workers.append(p)
+
+    # Pune toate valorile în input_queue
+    for n in values:
+        input_queue.put(n)
+
+    # Trimite None pentru fiecare worker (semnal de oprire)
+    for _ in range(4):
+        input_queue.put(None)
+
+    # Colectează rezultatele din output_queue
+    results = {}
+    for _ in range(len(values)):
+        n, res = output_queue.get()
+        results[n] = res
+
+    # Așteaptă terminarea proceselor
+    for p in workers:
+        p.join()
+
+    return results
 
 
 # TODO: Implementează funcția parallel_factorial_futures
@@ -81,4 +120,9 @@ def parallel_factorial_futures(values: list[int]) -> dict[int, int]:
         result = parallel_factorial_futures([5, 6, 7, 8])
         # {5: 120, 6: 720, 7: 5040, 8: 40320}
     """
-    raise NotImplementedError("De implementat")
+    with ProcessPoolExecutor(max_workers=4) as executor:
+        futures = {executor.submit(factorial, n): n for n in values}
+        results = {}
+        for future, n in futures.items():
+            results[n] = future.result()
+    return results

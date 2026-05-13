@@ -26,7 +26,8 @@ def read_file(path: str) -> str:
         FileNotFoundError: Dacă fișierul nu există.
         IOError: La erori de citire.
     """
-    raise NotImplementedError("De implementat")
+    with open(path, "r", encoding="utf-8") as f:
+        return f.read()
 
 
 # TODO: Implementează funcția count_words
@@ -47,7 +48,11 @@ def count_words(text: str) -> dict[str, int]:
         count_words("a a b") == {'a': 2, 'b': 1}
         count_words("") == {}
     """
-    raise NotImplementedError("De implementat")
+    words = text.split()
+    counts: dict[str, int] = {}
+    for word in words:
+        counts[word] = counts.get(word, 0) + 1
+    return counts
 
 
 # TODO: Implementează funcția write_result
@@ -58,7 +63,8 @@ def write_result(result: dict, output_path: str) -> None:
         result: Dict-ul {cuvânt: frecvență} de scris.
         output_path: Calea fișierului de ieșire.
     """
-    raise NotImplementedError("De implementat")
+    with open(output_path, "w", encoding="utf-8") as f:
+        json.dump(result, f)
 
 
 def _process_single_file(args: tuple[str, str]) -> None:
@@ -71,7 +77,10 @@ def _process_single_file(args: tuple[str, str]) -> None:
     # 1. Citește conținutul
     # 2. Numără cuvintele
     # 3. Scrie rezultatul
-    raise NotImplementedError("De implementat")
+    input_path, output_path = args
+    text = read_file(input_path)
+    counts = count_words(text)
+    write_result(counts, output_path)
 
 
 # TODO: Implementează funcția process_files_pipeline
@@ -92,4 +101,14 @@ def process_files_pipeline(input_paths: list[str], output_dir: str) -> None:
         )
         # Creează /tmp/output/doc1.json și /tmp/output/doc2.json
     """
-    raise NotImplementedError("De implementat")
+    output_path_obj = Path(output_dir)
+    output_path_obj.mkdir(parents=True, exist_ok=True)
+
+    args_list = []
+    for input_path in input_paths:
+        stem = Path(input_path).stem
+        output_path = str(output_path_obj / f"{stem}.json")
+        args_list.append((input_path, output_path))
+
+    with ThreadPoolExecutor() as executor:
+        executor.map(_process_single_file, args_list)
